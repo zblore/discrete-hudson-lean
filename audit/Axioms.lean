@@ -27,6 +27,13 @@ info: 'DiscreteHudson.wigner_eq' depends on axioms: [propext, Classical.choice, 
 #print axioms DiscreteHudson.wigner_eq
 
 /--
+info: 'DiscreteHudson.isStabilizerState_iff_exists_vec' depends on axioms:
+  [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs (whitespace := lax) in
+#print axioms DiscreteHudson.isStabilizerState_iff_exists_vec
+
+/--
 info: 'DiscreteHudson.discrete_hudson' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs (whitespace := lax) in

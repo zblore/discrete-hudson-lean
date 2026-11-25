@@ -2,7 +2,7 @@
 
 **Theorem** (D. Gross, "Hudson's theorem for finite-dimensional quantum systems", *J. Math. Phys.* 47 (2006) 122107, arXiv:quant-ph/0602001, Theorem 2). For odd d, a pure state of n qudits has a non-negative Wigner function if and only if it is a stabilizer state.
 
-Hudson proved in 1974 that a pure state of a continuous-variable system has a non-negative Wigner function exactly when it is Gaussian. Gross's theorem is the finite-dimensional version, with stabilizer states in place of Gaussian states. It is why negative values of the discrete Wigner function are treated as a resource for quantum computation. Stabilizer states can be simulated efficiently on a classical computer (the Gottesman–Knill theorem). A state with a negative Wigner value, such as a magic state, is needed to go beyond them.
+Hudson proved in 1974 that a pure state of a continuous-variable system has a non-negative Wigner function exactly when it is Gaussian. Gross's theorem is the finite-dimensional version, with stabilizer states in place of Gaussian states. Circuits built from stabilizer states and Clifford gates can be simulated efficiently on a classical computer (the Gottesman–Knill theorem). In odd dimensions, negative values of the Wigner function are used to measure how far a state lies outside that classically simulable setting (Veitch, Mousavian, Gottesman and Emerson, arXiv:1307.7171). For pure states, this theorem says that negativity is exactly what separates a state from the stabilizer states. For mixed states it is not: Gross gives a mixed state with a non-negative Wigner function that is not a mixture of stabilizer states.
 
 This repository proves it in Lean 4 with Mathlib, for every odd d, prime or not, and every number of qudits n.
 
@@ -14,11 +14,16 @@ A vector of n qudits is a function `ψ : (Fin n → ZMod d) → ℂ` on the comp
 - the **symplectic form** `[(p, q), (p′, q′)] = p·q′ − q·p′` (`symp`);
 - the **phase point operators** `A(a) = d⁻ⁿ Σ_b ω([a, b]) w(b)` (`phasePoint`);
 - the **Wigner function** `W(a) = d⁻ⁿ ⟨ψ| A(a) |ψ⟩` (`wigner`), Gross's Definition 5. For a vector that isn't normalised this is ‖ψ‖² times Gross's W, which doesn't change its sign;
-- a **stabilizer state** is a common eigenvector of the Weyl operators `w(m)`, `m ∈ M`, for an isotropic subgroup `M` of phase space with `dⁿ` elements (`IsStabilizerState`). Gross's Lemma 8 defines it this way, with the eigenvalues named, and his Corollary 26 shows these subgroups are exactly the maximally isotropic ones.
+- a **stabilizer state** is a common eigenvector of the Weyl operators `w(m)`, `m ∈ M`, for an isotropic subgroup `M` of phase space with `dⁿ` elements (`IsStabilizerState`). An isotropic subspace with `dⁿ` elements is Gross's definition of a maximally isotropic one (Section II D); for composite d, his subspaces are the additive subgroups. His Lemma 8 names the eigenvalues, `ω([v, m]) w(m) ψ = ψ`, and `isStabilizerState_iff_exists_vec` proves that form is equivalent. The zero vector satisfies both sides of the theorem, so no non-zero hypothesis is needed.
 
 ```lean
-theorem DiscreteHudson.discrete_hudson (hd : Odd d) (ψ : Config d n → ℂ) (hψ : ψ ≠ 0) :
+theorem DiscreteHudson.discrete_hudson (hd : Odd d) (ψ : Config d n → ℂ) :
     (∀ a, 0 ≤ wigner ψ a) ↔ IsStabilizerState ψ
+
+theorem DiscreteHudson.isStabilizerState_iff_exists_vec (hd : Odd d) (ψ : Config d n → ℂ) :
+    IsStabilizerState ψ ↔ ∃ M : AddSubgroup (PhaseSpace d n),
+      (∀ u ∈ M, ∀ v ∈ M, symp u v = 0) ∧ Nat.card M = d ^ n ∧
+        ∃ v : PhaseSpace d n, ∀ m ∈ M, ZMod.stdAddChar (symp v m) • weyl m ψ = ψ
 
 theorem DiscreteHudson.wigner_im (hd : Odd d) (ψ : Config d n → ℂ) (a : PhaseSpace d n) :
     (wigner ψ a).im = 0
@@ -30,11 +35,12 @@ theorem DiscreteHudson.wigner_eq (hd : Odd d) (ψ : Config d n → ℂ) (p q : C
 
 - `discrete_hudson` is Gross's Theorem 2. `0 ≤ wigner ψ a` uses Mathlib's `ComplexOrder`, in which `0 ≤ z` means that z is real and non-negative.
 - `wigner_im` says the Wigner function is real (Gross, Theorem 6.1), so that condition is ordinary non-negativity.
-- `wigner_eq` is the closed form of Gross's Theorem 6.2.
+- `wigner_eq` is the closed form of Gross's Theorem 6.2, after the substitution ξ ↦ −ξ.
+- `isStabilizerState_iff_exists_vec` is Gross's Lemma 8 form of a stabilizer state.
 
 ## The proof
 
-The proof does not follow Gross's Section III, which uses a discrete Bochner theorem, "balanced sets", Clifford covariance and a similarity lemma for composite d. It uses the algebra of the phase point operators instead. I don't claim the route is new. Write `e(a) = ⟨ψ|A(a)|ψ⟩` and `N = ‖ψ‖²`.
+The proof does not follow Gross's Section III, which uses a discrete Bochner theorem, "balanced sets", Clifford covariance and a similarity lemma for composite d. It follows the shorter route of D. Gross, S. Nezami and M. Walter, "Schur–Weyl duality for the Clifford group with applications", *Commun. Math. Phys.* 385 (2021) 1325–1393, arXiv:1712.08628, Section 8.1. I worked it out before reading their paper, and learned of it from a review. They get isotropy from products of three phase point operators. Here products of two give a group of Weyl operators, and its size is bounded directly. Write `e(a) = ⟨ψ|A(a)|ψ⟩` and `N = ‖ψ‖²`.
 
 1. **The operators** (`DiscreteHudson/Weyl.lean`).
    - The Weyl operators compose as `w(u) w(v) = ω(2⁻¹[u, v]) w(u + v)`.
@@ -56,25 +62,28 @@ The proof does not follow Gross's Section III, which uses a discrete Bochner the
    - The same identity forces `⟨ψ|w(v)|ψ⟩ = 0` for v outside M.
    - On an isotropic M the eigenvalues form a character, so `e(a)` is `N/dⁿ` times a character sum over M.
    - That sum is either |M| or 0, so `e(a) ≥ 0`.
+   - When it is |M|, the character is trivial, which is Gross's Lemma 8 form with `v = a`. Since `Σ_a e(a) = dⁿ N ≠ 0`, some a has this, which proves `isStabilizerState_iff_exists_vec`.
 
 ## Checks
 
-- **Axioms.** `audit/Axioms.lean` uses `#guard_msgs` to require that the three theorems and both directions of the main argument use only `propext`, `Classical.choice` and `Quot.sound`.
+- **Axioms.** `audit/Axioms.lean` uses `#guard_msgs` to require that the four theorems and both directions of the main argument use only `propext`, `Classical.choice` and `Quot.sound`.
 - **Non-vacuity.** `audit/Control.lean` shows that both sides of the equivalence are attained:
   - the basis vector `|0⋯0⟩` is a stabilizer state for every d and n, so its Wigner function is non-negative;
-  - for one qutrit, the Norrell state `|1⟩ − |2⟩` has `W(0, 0) = −2/3` (−1/3 once normalised), so it is not a stabilizer state.
+  - for one qutrit, the Strange state `|1⟩ − |2⟩` (in the naming of Veitch et al.) has `W(0, 0) = −2/3` (−1/3 once normalised), so it is not a stabilizer state;
+  - for d = 9, the vector `|0⟩ + |3⟩ + |6⟩` is a stabilizer state for `M = 3ℤ₉ × 3ℤ₉`, which is not a subspace over a field, so the theorem is exercised at a composite dimension.
 
   A canary at the end confirms that the axiom audit catches `sorry`.
 - **CI** rebuilds the library and `Solution` with warnings as errors, runs both audits, checks `formalization.yaml`, and runs `lake comparator`.
 - **Comparator.** `scripts/verify-comparator.sh` runs `lake comparator` in CI, sandboxed on Linux. It checks `Challenge.lean` against the proof and replays the proof through Lean's kernel, nanoda and con-ron.
   - I have run it locally on Windows, unsandboxed (`--inadvisably-no-sandbox`, with full paths to the nanoda and con-ron binaries in a copy of `comparator.json`), on 25 November 2026.
-  - It ended "Your solution is okay!", with con-ron (18,928 declarations), nanoda and Lean's kernel all accepting the proof.
+  - It ended "Your solution is okay!", with con-ron (19,020 declarations), nanoda and Lean's kernel all accepting the proof.
   - An unsandboxed run is not the trusted check; the sandboxed Linux run in CI is.
 
 ## Related work
 
-- **No earlier Lean proof of the theorem that I could find.** dbccpage/19L57G1 checks small cases on explicit tables, but doesn't state the theorem:
-  - [`NonclassicalHorizons.lean`](https://github.com/dbccpage/19L57G1/blob/f7bc4af97ed616c9f03c791dc038ae65146bd9ff/research/p209d_nonclassical_horizons/lean/NonclassicalHorizons.lean), `discrete_hudson_boundary_separation`: one stabilizer Wigner table of a qutrit is non-negative, and the Norrell state is negative at the origin;
+- **The proof route** is that of Gross, Nezami and Walter, Section 8.1 (above). Their proof is on paper.
+- **No earlier formal proof of the theorem that I could find.** dbccpage/19L57G1 checks small cases on explicit tables, but doesn't state the theorem:
+  - [`NonclassicalHorizons.lean`](https://github.com/dbccpage/19L57G1/blob/f7bc4af97ed616c9f03c791dc038ae65146bd9ff/research/p209d_nonclassical_horizons/lean/NonclassicalHorizons.lean), `discrete_hudson_boundary_separation`: one stabilizer Wigner table of a qutrit is non-negative, and the state `(|1⟩ − |2⟩)/√2` is negative at the origin. The file calls it `W_magic_norrell`; Veitch et al. call that state the Strange state;
   - [`WignerPhaseSpace.lean`](https://github.com/dbccpage/19L57G1/blob/f7bc4af97ed616c9f03c791dc038ae65146bd9ff/research/p209a_wigner_phase_space/lean/WignerPhaseSpace.lean): parity-operator checks for d = 3 and 5.
 - **Searches, 25 November 2026.** None of these is proof that nothing else exists.
   - GitHub code search for Lean files mentioning Hudson, discrete Wigner functions, phase point operators, stabilizer states with Wigner functions, Wigner negativity, Weyl operators over `ZMod`, and Heisenberg–Weyl.
@@ -83,11 +92,11 @@ The proof does not follow Gross's Section III, which uses a discrete Bochner the
 
 ## Files
 
-- `Challenge.lean` states the three theorems, ending in `sorry`. It imports only Mathlib.
+- `Challenge.lean` states the four theorems, ending in `sorry`. It imports only Mathlib, and a plain `lake build` prints its four `sorry` warnings, as expected.
 - `DiscreteHudson/Defs.lean`: the definitions, as in `Challenge.lean`.
 - `DiscreteHudson/Basic.lean`: inverting 2, roots of unity, character sums and Parseval on `ℤ_dⁿ`.
 - `DiscreteHudson/Weyl.lean`, `Sums.lean`, `Hudson.lean`: the proof.
-- `DiscreteHudson/Main.lean`: the three theorems as stated in `Challenge.lean`. `Solution.lean` re-exports them.
+- `DiscreteHudson/Main.lean`: three of the theorems as stated in `Challenge.lean`; `isStabilizerState_iff_exists_vec` is in `Hudson.lean`. `Solution.lean` re-exports them.
 
 ## Building
 

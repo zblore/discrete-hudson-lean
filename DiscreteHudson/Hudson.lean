@@ -29,7 +29,10 @@ forces `⟨ψ|w(v)|ψ⟩ = 0` off `M`. On an isotropic `M` the eigenvalues form 
 `|M|` or `0` (Gross, Lemma 9).
 
 This route avoids the discrete Bochner theorem, Clifford covariance and the similarity lemma
-used in Gross's Section III.
+used in Gross's Section III. It is essentially the proof of D. Gross, S. Nezami and M. Walter,
+"Schur–Weyl duality for the Clifford group with applications", *Commun. Math. Phys.* 385 (2021)
+1325–1393, arXiv:1712.08628, Section 8.1, which gets isotropy from products of three phase point
+operators; here products of two give a group of Weyl operators, and its size is bounded directly.
 -/
 
 @[expose] public section
@@ -116,11 +119,33 @@ lemma norm_sub_phasePoint (hd : Odd d) (a : PhaseSpace d n) (ψ : Config d n →
   rw [← h1, ← h2]
   ring
 
+/-! ### The zero vector -/
+
+lemma weyl_zero_vec (v : PhaseSpace d n) : weyl v (0 : Config d n → ℂ) = 0 := by
+  funext x; simp [weyl]
+
+/-- There is a maximally isotropic subgroup: the momenta, `{(p, 0)}`. -/
+lemma exists_maximal_isotropic :
+    ∃ M : AddSubgroup (PhaseSpace d n), (∀ u ∈ M, ∀ v ∈ M, symp u v = 0) ∧ Nat.card M = d ^ n := by
+  refine ⟨(⊤ : AddSubgroup (Config d n)).prod ⊥, ?_, ?_⟩
+  · intro u hu v hv
+    rw [AddSubgroup.mem_prod, AddSubgroup.mem_bot] at hu hv
+    simp [symp, hu.2, hv.2]
+  · rw [Nat.card_congr (AddSubgroup.prodEquiv _ _).toEquiv, Nat.card_prod, AddSubgroup.card_top,
+      AddSubgroup.card_bot, mul_one, Nat.card_eq_fintype_card, Fintype.card_fun, ZMod.card,
+      Fintype.card_fin]
+
+lemma isStabilizerState_zero : IsStabilizerState (0 : Config d n → ℂ) := by
+  obtain ⟨M, hiso, hcard⟩ := exists_maximal_isotropic (d := d) (n := n)
+  exact ⟨M, hiso, hcard, fun m _ => ⟨0, by rw [weyl_zero_vec, smul_zero]⟩⟩
+
 /-! ### Non-negative implies stabilizer -/
 
-theorem isStabilizerState_of_nonneg (hd : Odd d) (ψ : Config d n → ℂ) (hψ : ψ ≠ 0)
+theorem isStabilizerState_of_nonneg (hd : Odd d) (ψ : Config d n → ℂ)
     (h : ∀ a, 0 ≤ wigner ψ a) : IsStabilizerState ψ := by
   classical
+  by_cases hψ : ψ = 0
+  · subst hψ; exact isStabilizerState_zero
   set N := nsq ψ with hNdef
   have hN : 0 < N := nsq_pos hψ
   have hdn : (0 : ℝ) < (d : ℝ) ^ n := pow_pos (Nat.cast_pos.2 (NeZero.pos d)) n
@@ -303,12 +328,18 @@ lemma inner_phasePoint_eq_sum (a : PhaseSpace d n) (ψ : Config d n → ℂ) :
   refine Finset.sum_congr rfl fun b _ => Finset.sum_congr rfl fun x _ => ?_
   ring
 
-/-- Gross's Lemma 9, in the form used here: for a stabilizer state, `W(a) = ‖ψ‖²/d²ⁿ` times a
-character sum over `M`, which is `|M|` or `0`. -/
-theorem wigner_nonneg_of_isStabilizerState (hd : Odd d) (ψ : Config d n → ℂ) (hψ : ψ ≠ 0)
-    (hs : IsStabilizerState ψ) (a : PhaseSpace d n) : 0 ≤ wigner ψ a := by
+/-- Gross's Lemma 9, in the form used here. For a non-zero common eigenvector `ψ` of the Weyl
+operators of a maximally isotropic `M`, `⟨ψ|A(a)|ψ⟩ = d⁻ⁿ ‖ψ‖² Σ_{m ∈ M} φ(m)` for a character
+`φ` of `M`. So it is either `0`, or `‖ψ‖²` with `φ` trivial, which says that
+`ω([a, m]) w(m) ψ = ψ` for every `m ∈ M`. -/
+theorem inner_phasePoint_of_stabilizer (hd : Odd d) (ψ : Config d n → ℂ) (hψ : ψ ≠ 0)
+    {M : AddSubgroup (PhaseSpace d n)} (hiso : ∀ u ∈ M, ∀ v ∈ M, symp u v = 0)
+    (hcard : Nat.card M = d ^ n) (heig : ∀ m ∈ M, ∃ c : ℂ, weyl m ψ = c • ψ)
+    (a : PhaseSpace d n) :
+    (∑ x, star (ψ x) * phasePoint a ψ x = 0) ∨
+      ((∑ x, star (ψ x) * phasePoint a ψ x = (nsq ψ : ℂ)) ∧
+        ∀ m ∈ M, ω (symp a m) • weyl m ψ = ψ) := by
   classical
-  obtain ⟨M, hiso, hcard, heig⟩ := hs
   set N := nsq ψ with hNdef
   have hN : 0 < N := nsq_pos hψ
   have hNc : (N : ℂ) ≠ 0 := by exact_mod_cast hN.ne'
@@ -384,14 +415,61 @@ theorem wigner_nonneg_of_isStabilizerState (hd : Odd d) (ψ : Config d n → ℂ
     refine Finset.sum_congr rfl fun m _ => ?_
     change _ = N * (ω (symp a m) * χ m / N)
     field_simp
-  have hφ : ∑ m : M, φ m = (((if φ = 0 then Fintype.card M else 0 : ℕ) : ℝ) : ℂ) := by
-    rw [AddChar.sum_eq_ite]; split_ifs <;> simp
-  have hw : wigner ψ a = ((((d : ℝ) ^ n)⁻¹ * (((d : ℝ) ^ n)⁻¹ *
-      (N * ((if φ = 0 then Fintype.card M else 0 : ℕ) : ℝ))) : ℝ) : ℂ) := by
-    rw [wigner, inner_phasePoint_eq_sum, hsumM, hφ]
-    push_cast; rfl
-  rw [hw, Complex.zero_le_real]
-  have hdn : (0 : ℝ) ≤ ((d : ℝ) ^ n)⁻¹ := inv_nonneg.2 (pow_nonneg (Nat.cast_nonneg d) n)
-  exact mul_nonneg hdn (mul_nonneg hdn (mul_nonneg hN.le (Nat.cast_nonneg _)))
+  have hdn : ((d : ℂ) ^ n) ≠ 0 := pow_ne_zero _ (Nat.cast_ne_zero.2 (NeZero.ne d))
+  rw [inner_phasePoint_eq_sum, hsumM]
+  by_cases hφ0 : φ = 0
+  · right
+    refine ⟨?_, fun m hm => ?_⟩
+    · rw [AddChar.sum_eq_ite, ite_eq_left_of_eq_true _ _ (eq_true hφ0), ← Nat.card_eq_fintype_card, hcard]
+      push_cast
+      field_simp
+    · have h1 : φ ⟨m, hm⟩ = 1 := by rw [hφ0]; rfl
+      change ω (symp a m) * χ m / N = 1 at h1
+      obtain ⟨c, hc⟩ := heig m hm
+      rw [show χ m = c * N from inner_weyl_of_eigen hc] at h1
+      have h2 : ω (symp a m) * c = 1 := by
+        field_simp at h1; linear_combination h1
+      rw [hc, smul_smul, h2, one_smul]
+  · left
+    rw [(AddChar.sum_eq_zero_iff_ne_zero).2 hφ0, mul_zero, mul_zero]
+
+theorem wigner_nonneg_of_isStabilizerState (hd : Odd d) (ψ : Config d n → ℂ)
+    (hs : IsStabilizerState ψ) (a : PhaseSpace d n) : 0 ≤ wigner ψ a := by
+  by_cases hψ : ψ = 0
+  · subst hψ; simp [wigner]
+  obtain ⟨M, hiso, hcard, heig⟩ := hs
+  rcases inner_phasePoint_of_stabilizer hd ψ hψ hiso hcard heig a with h | ⟨h, _⟩
+  · rw [wigner, h, mul_zero]
+  · rw [wigner, h]
+    have : (((d : ℂ) ^ n)⁻¹ * (nsq ψ : ℂ)) = ((((d : ℝ) ^ n)⁻¹ * nsq ψ : ℝ) : ℂ) := by push_cast; rfl
+    rw [this, Complex.zero_le_real]
+    exact mul_nonneg (inv_nonneg.2 (pow_nonneg (Nat.cast_nonneg d) n)) (nsq_nonneg ψ)
+
+/-- Gross's own form of a stabilizer state (Lemma 8): `ω([v, m]) w(m) ψ = ψ` for all `m ∈ M`. -/
+theorem isStabilizerState_iff_exists_vec (hd : Odd d) (ψ : Config d n → ℂ) :
+    IsStabilizerState ψ ↔ ∃ M : AddSubgroup (PhaseSpace d n),
+      (∀ u ∈ M, ∀ v ∈ M, symp u v = 0) ∧ Nat.card M = d ^ n ∧
+        ∃ v : PhaseSpace d n, ∀ m ∈ M, ω (symp v m) • weyl m ψ = ψ := by
+  constructor
+  · intro hs
+    by_cases hψ : ψ = 0
+    · subst hψ
+      obtain ⟨M, hiso, hcard⟩ := exists_maximal_isotropic (d := d) (n := n)
+      exact ⟨M, hiso, hcard, 0, fun m _ => by rw [weyl_zero_vec, smul_zero]⟩
+    obtain ⟨M, hiso, hcard, heig⟩ := hs
+    have hsum := sum_inner_phasePoint hd ψ
+    rw [sum_star_mul_self] at hsum
+    have hne : ∑ a : PhaseSpace d n, ∑ x, star (ψ x) * phasePoint a ψ x ≠ 0 := by
+      rw [hsum]
+      exact mul_ne_zero (pow_ne_zero _ (Nat.cast_ne_zero.2 (NeZero.ne d)))
+        (by exact_mod_cast (nsq_pos hψ).ne')
+    obtain ⟨a, _, ha⟩ := Finset.exists_ne_zero_of_sum_ne_zero hne
+    rcases inner_phasePoint_of_stabilizer hd ψ hψ hiso hcard heig a with h | ⟨_, h⟩
+    · exact absurd h ha
+    · exact ⟨M, hiso, hcard, a, h⟩
+  · rintro ⟨M, hiso, hcard, v, h⟩
+    refine ⟨M, hiso, hcard, fun m hm => ⟨ω (-symp v m), ?_⟩⟩
+    conv_rhs => rw [← h m hm]
+    rw [smul_smul, ← AddChar.map_add_eq_mul, neg_add_cancel, AddChar.map_zero_eq_one, one_smul]
 
 end DiscreteHudson

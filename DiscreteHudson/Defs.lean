@@ -54,8 +54,11 @@ noncomputable def wigner (ψ : Config d n → ℂ) (a : PhaseSpace d n) : ℂ :=
   ((d : ℂ) ^ n)⁻¹ * ∑ x, star (ψ x) * phasePoint a ψ x
 
 /-- `ψ` is a stabilizer state: it is a common eigenvector of the Weyl operators `w(m)`, `m ∈ M`,
-for some isotropic subgroup `M` of phase space with `dⁿ` elements, that is, a maximally
-isotropic one (Gross, Lemma 8 and Corollary 26). -/
+for some isotropic subgroup `M` of phase space with `dⁿ` elements, which is Gross's definition of
+a maximally isotropic subspace (Section II D; additive subgroups of `ℤ_d²ⁿ` are its subspaces).
+Gross's Lemma 8 names the eigenvalues, `ω([v, m]) w(m) ψ = ψ`; `isStabilizerState_iff_exists_vec`
+proves that the two forms agree. The zero vector satisfies this definition; Gross's state vectors
+are non-zero. -/
 def IsStabilizerState (ψ : Config d n → ℂ) : Prop :=
   ∃ M : AddSubgroup (PhaseSpace d n), (∀ u ∈ M, ∀ v ∈ M, symp u v = 0) ∧
     Nat.card M = d ^ n ∧ ∀ m ∈ M, ∃ c : ℂ, weyl m ψ = c • ψ

@@ -26,13 +26,16 @@ A vector is a function `ψ : (Fin n → ZMod d) → ℂ` on the computational ba
 * `wigner ψ a` is `W(a) = d⁻ⁿ ⟨ψ| A(a) |ψ⟩`: Gross's Wigner function for a unit vector, and that
   function times `‖ψ‖²` in general.
 * `IsStabilizerState ψ`: `ψ` is a common eigenvector of the `w(m)`, `m ∈ M`, for an isotropic
-  subgroup `M` of phase space with `dⁿ` elements (Gross, Lemma 8 and Corollary 26).
+  subgroup `M` of phase space with `dⁿ` elements (Gross's maximally isotropic subspaces).
 
 The theorems:
 
 * `wigner_im`: the Wigner function is real (so `0 ≤ wigner ψ a`, in `ComplexOrder`, says only
   that it is non-negative);
-* `wigner_eq`: the closed form `W(p, q) = d⁻ⁿ Σ_ξ ω(p · ξ) ψ̄(q + ξ/2) ψ(q - ξ/2)`;
+* `wigner_eq`: the closed form `W(p, q) = d⁻ⁿ Σ_ξ ω(p · ξ) ψ̄(q + ξ/2) ψ(q - ξ/2)`, Gross's
+  Theorem 6.2 after `ξ ↦ -ξ`;
+* `isStabilizerState_iff_exists_vec`: the definition agrees with Gross's Lemma 8, where the
+  eigenvalues are named: `ω([v, m]) w(m) ψ = ψ` for all `m ∈ M`;
 * `discrete_hudson`: Gross's Theorem 2.
 -/
 
@@ -69,8 +72,11 @@ noncomputable def wigner (ψ : Config d n → ℂ) (a : PhaseSpace d n) : ℂ :=
   ((d : ℂ) ^ n)⁻¹ * ∑ x, star (ψ x) * phasePoint a ψ x
 
 /-- `ψ` is a stabilizer state: it is a common eigenvector of the Weyl operators `w(m)`, `m ∈ M`,
-for some isotropic subgroup `M` of phase space with `dⁿ` elements, that is, a maximally
-isotropic one (Gross, Lemma 8 and Corollary 26). -/
+for some isotropic subgroup `M` of phase space with `dⁿ` elements, which is Gross's definition of
+a maximally isotropic subspace (Section II D; additive subgroups of `ℤ_d²ⁿ` are its subspaces).
+Gross's Lemma 8 names the eigenvalues, `ω([v, m]) w(m) ψ = ψ`; `isStabilizerState_iff_exists_vec`
+proves that the two forms agree. The zero vector satisfies this definition; Gross's state vectors
+are non-zero. -/
 def IsStabilizerState (ψ : Config d n → ℂ) : Prop :=
   ∃ M : AddSubgroup (PhaseSpace d n), (∀ u ∈ M, ∀ v ∈ M, symp u v = 0) ∧
     Nat.card M = d ^ n ∧ ∀ m ∈ M, ∃ c : ℂ, weyl m ψ = c • ψ
@@ -81,16 +87,24 @@ theorem wigner_im (hd : Odd d) (ψ : Config d n → ℂ) (a : PhaseSpace d n) :
     (wigner ψ a).im = 0 := by
   sorry
 
-/-- The Wigner function in closed form:
-`W(p, q) = d⁻ⁿ Σ_ξ ω(p · ξ) ψ̄(q + ξ/2) ψ(q - ξ/2)`. -/
+/-- The Wigner function in closed form, `W(p, q) = d⁻ⁿ Σ_ξ ω(p · ξ) ψ̄(q + ξ/2) ψ(q - ξ/2)`. This is
+Gross's Theorem 6.2 after the substitution `ξ ↦ -ξ`. -/
 theorem wigner_eq (hd : Odd d) (ψ : Config d n → ℂ) (p q : Config d n) :
     wigner ψ (p, q) = ((d : ℂ) ^ n)⁻¹ * ∑ ξ : Config d n, ZMod.stdAddChar (p ⬝ᵥ ξ) *
       (star (ψ (q + (2 : ZMod d)⁻¹ • ξ)) * ψ (q - (2 : ZMod d)⁻¹ • ξ)) := by
   sorry
 
-/-- **The discrete Hudson theorem** (Gross, Theorem 2). For odd `d`, a non-zero vector of `n`
-qudits has a non-negative Wigner function if and only if it is a stabilizer state. -/
-theorem discrete_hudson (hd : Odd d) (ψ : Config d n → ℂ) (hψ : ψ ≠ 0) :
+/-- Gross's own form of a stabilizer state (Lemma 8): `ω([v, m]) w(m) ψ = ψ` for all `m ∈ M`. -/
+theorem isStabilizerState_iff_exists_vec (hd : Odd d) (ψ : Config d n → ℂ) :
+    IsStabilizerState ψ ↔ ∃ M : AddSubgroup (PhaseSpace d n),
+      (∀ u ∈ M, ∀ v ∈ M, symp u v = 0) ∧ Nat.card M = d ^ n ∧
+        ∃ v : PhaseSpace d n, ∀ m ∈ M, ZMod.stdAddChar (symp v m) • weyl m ψ = ψ := by
+  sorry
+
+/-- **The discrete Hudson theorem** (Gross, Theorem 2). For odd `d`, a vector of `n` qudits has a
+non-negative Wigner function if and only if it is a stabilizer state. (The zero vector satisfies
+both sides.) -/
+theorem discrete_hudson (hd : Odd d) (ψ : Config d n → ℂ) :
     (∀ a, 0 ≤ wigner ψ a) ↔ IsStabilizerState ψ := by
   sorry
 

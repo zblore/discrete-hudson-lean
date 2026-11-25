@@ -4,6 +4,7 @@
   "theorem_names": [
     "DiscreteHudson.wigner_im",
     "DiscreteHudson.wigner_eq",
+    "DiscreteHudson.isStabilizerState_iff_exists_vec",
     "DiscreteHudson.discrete_hudson"
   ],
   "definition_names": [],
