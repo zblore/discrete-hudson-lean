@@ -1,0 +1,136 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/mathlib-initiative/formalization.yaml/main/schema/formalization.schema.json
+version: "v0.4"
+
+project:
+  name: "The discrete Hudson theorem"
+  description: >-
+    A machine-checked proof of Gross's discrete Hudson theorem: for odd d, a pure state of n
+    qudits has a non-negative Wigner function if and only if it is a stabilizer state. Every odd
+    d is covered, including composite d, and every n. The definitions follow Gross's Section II:
+    the Weyl operators w(p, q) with the symmetric phase convention, the phase point operators
+    A(a) = d^(-n) sum_b omega([a, b]) w(b), the Wigner function W(a) = d^(-n) <psi|A(a)|psi>,
+    and a stabilizer state as a common eigenvector of the Weyl operators of an isotropic subgroup
+    of phase space with d^n elements. Also proved: the Wigner function is real, and equals the
+    closed form d^(-n) sum_xi omega(p . xi) conj(psi(q + xi/2)) psi(q - xi/2) (Gross, Theorem 6).
+    The proof
+    does not follow Gross's Section III. For a pure state the Wigner values sum to 1, their
+    squares sum to d^(-n), and none exceeds d^(-n), so non-negative values are 0 or d^(-n); the
+    points where W = d^(-n) give, through products of phase point operators, a maximal isotropic
+    group of Weyl operators fixing the state. The converse is a character sum. Two concrete
+    controls show both sides of the equivalence are attained.
+  authors:
+    - "Zayn Blore"
+  license: "Apache-2.0"
+  responsible_maintainers:
+    - "Zayn Blore"
+
+repository:
+  role: "substantive-development"
+
+classification:
+  arxiv: ["quant-ph", "math-ph"]
+  msc2020: ["81S30", "81P45", "81P68"]
+
+sources:
+  - title: "Hudson's theorem for finite-dimensional quantum systems"
+    authors:
+      - "D. Gross"
+    id: "https://doi.org/10.1063/1.2393152"
+    type: "paper"
+    location: "J. Math. Phys. 47 (2006), no. 12, 122107; arXiv:quant-ph/0602001."
+    relationship: "formalizes"
+    note: >-
+      Theorem 2 (Discrete Hudson's Theorem). Definitions from Section II: Weyl operators
+      (eqs. (3), (8)), the symplectic form (eqs. (5), (6)), phase point operators and the Wigner
+      function (Definition 5, eq. (15)), stabilizer states (Lemma 8, with Corollary 26 for the
+      size of a maximally isotropic subgroup). Statement and definitions were taken from the
+      arXiv version (v3). The proof here does not follow Section III (a discrete Bochner
+      theorem, balanced sets, Clifford covariance and a similarity lemma); see the project
+      description. The converse direction is Gross's Lemma 9, proved here by a character sum.
+    author_endorsement: "n/a"
+
+related_formalizations:
+  - id: "https://github.com/dbccpage/19L57G1/blob/f7bc4af97ed616c9f03c791dc038ae65146bd9ff/research/p209d_nonclassical_horizons/lean/NonclassicalHorizons.lean"
+    relationship: "independent"
+    note: >-
+      discrete_hudson_boundary_separation: for one qutrit, an explicit stabilizer Wigner table is
+      non-negative and the Norrell magic state is negative at the origin, checked on 3x3 tables.
+      Not a statement of the theorem.
+  - id: "https://github.com/dbccpage/19L57G1/blob/f7bc4af97ed616c9f03c791dc038ae65146bd9ff/research/p209a_wigner_phase_space/lean/WignerPhaseSpace.lean"
+    relationship: "independent"
+    note: >-
+      Explicit parity-operator and negativity checks for dimensions 3 and 5 on integer and
+      rational matrices. Not a statement of the theorem.
+
+status:
+  scope: >-
+    Gross's Theorem 2 for every odd d and every number of qudits n: for a non-zero vector, the
+    Wigner function is non-negative everywhere if and only if the vector is a stabilizer state;
+    plus the reality of the Wigner function and its closed form. Not covered: even d, including
+    qubits, which Gross's theorem does not address; mixed states; the Clifford-group results; the
+    uniqueness of the Wigner function and the prime-power counting in Gross's other sections,
+    and the explicit quadratic-phase form of stabilizer states.
+  sorry_count: 0
+  sorry_in_definitions: 0
+  axioms:
+    - "propext"
+    - "Classical.choice"
+    - "Quot.sound"
+
+automation:
+  methods:
+    - method: "agent"
+      models: ["Claude Opus 5.5"]
+      framework: "Claude Code"
+  notes: >-
+    I drafted the Lean with Claude Code, on 25 November 2026. I chose the theorem, the statement
+    (Gross's own definitions, every odd d including composite d, the full equivalence) and the
+    proof route through phase point operators, and I checked the result.
+
+fidelity:
+  divergences: >-
+    Written directly in Mathlib. A vector is a function on the computational basis
+    (Fin n -> ZMod d); operators act on such functions. omega is ZMod.stdAddChar,
+    omega(t) = exp(2 pi i t / d), and 2^(-1) is the inverse of 2 in ZMod d. The Wigner function
+    is defined for any vector as d^(-n) <psi|A(a)|psi>, which is Gross's W for a unit vector and
+    ||psi||^2 times it in general; the sign, and so the theorem, is unaffected, and the theorem
+    assumes only psi non-zero. Non-negativity is stated in Mathlib's ComplexOrder (0 <= z means
+    z is real and non-negative); wigner_im shows the Wigner function is real, so this is
+    ordinary non-negativity. A stabilizer state is a common eigenvector of the w(m), m in M, for
+    an isotropic additive subgroup M with d^n elements; Gross's Lemma 8 fixes the eigenvalues as
+    omega([v, m])^(-1), which for an isotropic M is the same condition, and his Corollary 26
+    shows that isotropic subgroups with d^n elements are exactly the maximally isotropic ones.
+
+review:
+  status: "unreviewed"
+  notes: >-
+    The proof development has no sorry, admit or native_decide; the sorry in Challenge.lean is
+    Comparator's placeholder, and audit/Control.lean has one deliberate sorry, placed last, to
+    show that the axiom audit catches it. audit/Axioms.lean enforces with #guard_msgs that the
+    three theorems and both directions of the main argument use only propext, Classical.choice
+    and Quot.sound. audit/Control.lean proves that the basis vector |0...0> is a stabilizer
+    state for every d and n, and that for one qutrit the Norrell state |1> - |2> has
+    W(0, 0) = -2/3 (-1/3 once normalised), so is not one. Lake's comparator was run locally on Windows, unsandboxed
+    (--inadvisably-no-sandbox, with explicit paths to the nanoda and con-ron binaries), on
+    25 November 2026: the statements match and con-ron (18,928 declarations), nanoda and Lean's
+    kernel accept the proof. An unsandboxed run is not the trusted check; the sandboxed Linux
+    run happens in CI after a push.
+
+alignment:
+  namespace: "DiscreteHudson"
+  statements:
+    - source: "Gross, Theorem 2 (Discrete Hudson's Theorem): for odd d, the Wigner function of a state vector is non-negative if and only if it is a stabilizer state"
+      lean: "DiscreteHudson.discrete_hudson"
+      module: "Solution"
+      status: "proved"
+    - source: "The Wigner function of a pure state is real (Gross, Theorem 6.1)"
+      lean: "DiscreteHudson.wigner_im"
+      module: "Solution"
+      status: "proved"
+    - source: "The Wigner function of a pure state in closed form (Gross, Theorem 6.2)"
+      lean: "DiscreteHudson.wigner_eq"
+      module: "Solution"
+      status: "proved"
+
+acknowledgements: >-
+  Thanks to the authors of Lean 4 and Mathlib.

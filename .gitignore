@@ -1,0 +1,7 @@
+.lake/
+*.log
+sources/
+REVIEW-BRIEF*.md
+reviews/
+__pycache__/
+gen.tmp
